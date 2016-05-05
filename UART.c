@@ -5,6 +5,7 @@
 #include<stc89c52_eeprom.h>
 sfr AUXR = 0x8E;
 extern bit SystemStatu;
+extern unsigned int Timer1s;
 extern unsigned char ChannelStatu[25];
 unsigned int BaudRate;
 void UART_Action(unsigned char *dat, unsigned char len)
@@ -18,28 +19,41 @@ void UART_Action(unsigned char *dat, unsigned char len)
 	{
 		if(len >= 10 && (strncmp(dat + 1, "setbaud:", 8) == 0 || strncmp(dat + 1, "SETBAUD:", 8) == 0))
 		{
+			for(i = 0; i < 25; i++)
+				ChannelStatu[i] = 0;
 			sscanf(dat + 9, "%d", &temp);			
 			sprintf(str, "%d\n", temp);
 			UART_SendString("Baud Seted:", 11);
 			UART_SendString(str, strlen(str));
 			UART_Conf(temp);
 		}
-		else if(len >= 11 && (strncmp(dat + 1, "findbaud:", 9) == 0 || strncmp(dat + 1, "FINDBAUD:", 9) == 0))
+		else if(len >= 10 && (strncmp(dat + 1, "findbaud", 8) == 0 || strncmp(dat + 1, "FINDBAUD", 8) == 0))
 		{
-			UART_SendString(dat + 10, len - 11);
-			UART_SendString("\n", 1);
+			for(i = 0; i < 25; i++)
+				ChannelStatu[i] = 0;
+			sprintf(str, "%d\n", BaudRate);
+			UART_SendString("BaudRate:", 9);
+			UART_SendString(str, strlen(str));
 		}
 		else if(len >= 11 && (strncmp(dat + 1, "choosech:", 9) == 0 || strncmp(dat + 1, "CHOOSECH:", 9) == 0))
 		{
 			for(i = 0; i < 25; i++)
 				ChannelStatu[i] = 0;
 			p = strtok(dat + 10, ",");
-			do
+			if(p == NULL)
 			{
-				i = sscanf(p, "%d", &temp);
+				i = sscanf(dat + 10, "%d", &temp);
 				ChannelStatu[temp] = 1;
-				p = strtok(NULL, ",");
-			}while(p[0] && i);
+			}
+			else
+			{
+				do
+				{
+					i = sscanf(p, "%d", &temp);
+					ChannelStatu[temp] = 1;
+					p = strtok(NULL, ",");
+				}while(p && p[0] && i);
+			}
 			
 			UART_SendString("Set Channels:", 13);
 			for(i = 0; i < 25; i++)
@@ -67,6 +81,8 @@ void UART_Action(unsigned char *dat, unsigned char len)
 		}
 		else if(len >= 10 && (strncmp(dat + 1, "findtime", 8) == 0 || strncmp(dat + 1, "FINDTIME:", 9) == 0))
 		{
+			for(i = 0; i < 25; i++)
+				ChannelStatu[i] = 0;
 			UART_SendString("Time:100ms\n", 11);
 		}
 		else if(len >= 5 && (strncmp(dat + 1, "off", 3) == 0 || strncmp(dat + 1, "OFF", 3) == 0))
@@ -250,5 +266,6 @@ void interrupt_Timer0() interrupt 1
 {
 	TL0 = 0x66;		
 	TH0 = 0xFC;		
+	Timer1s++;
 	UART_RxMonitor(1);
 }

@@ -7,6 +7,7 @@
 #define uint unsigned int 
 
 bit SystemStatu = 1;
+unsigned int Timer1s = 0;
 unsigned char ChannelStatu[25] = {0};
 
 //µ¥Æ¬»úÒı½ÅÅäÖÃ
@@ -45,7 +46,6 @@ uint Run_Adc(uint n)
 {
 	uchar i,ADC_Value_L=0,ADC_Value_H=0,fg; 
 	uint ADC_Result; 
-	return n + 0xA0;
 	AD_clk=0;
 	if(n<11) 
 	{
@@ -190,8 +190,9 @@ void main()
 	while(1) 
 	{  
 		UART_Driver();
-		if(SystemStatu)
+		if(SystemStatu && Timer1s >= 1000)
 		{ 
+			Timer1s = 0;
 			for(i = 0; i < 25; i++)
 			{
 				if(ChannelStatu[i])
