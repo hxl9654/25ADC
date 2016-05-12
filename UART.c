@@ -3,9 +3,10 @@
 #include<string.h>
 #include<stdio.h>
 #include<stc89c52_eeprom.h>
-sfr AUXR = 0x8E;
+
 extern bit SystemStatu;
-extern unsigned int Timer1s;
+extern int Time;
+extern int Timer1s;
 extern unsigned char ChannelStatu[25];
 unsigned int BaudRate;
 void UART_Action(unsigned char *dat, unsigned char len)
@@ -66,8 +67,9 @@ void UART_Action(unsigned char *dat, unsigned char len)
 				}
 			UART_SendString("\n\n", 1);
 		}
-		else if(len >= 8 && (strncmp(dat + 1, "findch", 6) == 0 || strncmp(dat + 1, "FINDCH:", 7) == 0))
+		else if(len >= 8 && (strncmp(dat + 1, "findch", 6) == 0 || strncmp(dat + 1, "FINDCH", 6) == 0))
 		{
+			Timer1s = -2000;
 			UART_SendString("Channels:", 9);
 			for(i = 0; i < 25; i++)
 				if(ChannelStatu[i])
@@ -79,11 +81,24 @@ void UART_Action(unsigned char *dat, unsigned char len)
 				}
 			UART_SendString("\n", 1);
 		}
-		else if(len >= 10 && (strncmp(dat + 1, "findtime", 8) == 0 || strncmp(dat + 1, "FINDTIME:", 9) == 0))
+		else if(len >= 10 && (strncmp(dat + 1, "findtime", 8) == 0 || strncmp(dat + 1, "FINDTIME", 8) == 0))
 		{
 			for(i = 0; i < 25; i++)
 				ChannelStatu[i] = 0;
-			UART_SendString("Time:100ms\n", 11);
+			
+			sprintf(str, "Time:%dms\n", Time);
+			UART_SendString(str, strlen(str));
+		}
+		else if(len >= 10 && (strncmp(dat + 1, "settime:", 8) == 0 || strncmp(dat + 1, "SETTIME:", 9) == 0))
+		{
+			for(i = 0; i < 25; i++)
+				ChannelStatu[i] = 0;
+			
+			sscanf(dat + 9, "%d", &temp);			
+			sprintf(str, "%dms\n", temp);
+			Time = temp;
+			UART_SendString("Time Seted:", 11);
+			UART_SendString(str, strlen(str));
 		}
 		else if(len >= 5 && (strncmp(dat + 1, "off", 3) == 0 || strncmp(dat + 1, "OFF", 3) == 0))
 		{
@@ -116,7 +131,6 @@ bit UART_ResiveStringFlag;                  //串口字符串正在接收标志
 *////////////////////////////////////////////////////////////////////////////////////
 void Timer0_Init()
 {
-	AUXR &= 0x7F;		//定时器时钟12T模式
 	TMOD &= 0xF0;		//设置定时器模式
 	TMOD |= 0x01;		//设置定时器模式
 	TL0 = 0x66;		//设置定时初值
@@ -139,9 +153,7 @@ void UART_Conf(unsigned int baud) //UART设置函数（buad：欲设置的波特
 	iapProgramByte(0x2000, baud / 100);
 	
 	BaudRate = baud;
-	AUXR &= 0xBF;		//定时器1时钟为Fosc/12,即12T
-	AUXR &= 0xFE;		//串口1选择定时器1为波特率发生器
-	TL1 = TH1 = 256 - 11059200 / 12 / 32 / baud;    //计算定时器初值
+	TL1 = TH1 = 256 - 11059200 / 6 / 32 / baud;    //计算定时器初值
 	EA = 1;         //使能总中断
 	ES = 1;         //使能串口中断
 	TMOD &= 0X0F;   //配置定时器1为自动重装模式

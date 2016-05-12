@@ -6,8 +6,9 @@
 #define uchar unsigned char 
 #define uint unsigned int 
 
+int Time = 1000;
 bit SystemStatu = 1;
-unsigned int Timer1s = 0;
+int Timer1s = 0;
 unsigned char ChannelStatu[25] = {0};
 
 //µ¥Æ¬»úÒý½ÅÅäÖÃ
@@ -190,7 +191,7 @@ void main()
 	while(1) 
 	{  
 		UART_Driver();
-		if(SystemStatu && Timer1s >= 1000)
+		if(SystemStatu && Timer1s >= Time)
 		{ 
 			Timer1s = 0;
 			for(i = 0; i < 25; i++)
